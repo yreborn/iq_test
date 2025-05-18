@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智商测试 - IQ Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .progress-container {
+            margin-bottom: 30px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            height: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #3498db;
+            width: 0;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .question-container {
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .question-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question {
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .question-number {
+            font-weight: normal;
+            color: #7f8c8d;
+        }
+        
+        .options {
+            list-style: none;
+        }
+        
+        .option {
+            padding: 12px 15px;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .option:hover {
+            background: #e9ecef;
+        }
+        
+        .option.selected {
+            background: #3498db;
+            color: white;
+        }
+        
+        .image-question img {
+            max-width: 100%;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        #prevBtn {
+            background: #95a5a6;
+        }
+        
+        #prevBtn:hover {
+            background: #7f8c8d;
+        }
+        
+        #startScreen, #resultScreen {
+            text-align: center;
+        }
+        
+        #resultScreen {
+            display: none;
+        }
+        
+        .result-container {
+            margin: 30px 0;
+        }
+        
+        .iq-score {
+            font-size: 72px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        
+        .iq-description {
+            font-size: 18px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .restart-btn {
+            background: #2ecc71;
+        }
+        
+        .restart-btn:hover {
+            background: #27ae60;
+        }
+        
+        .timer {
+            text-align: right;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>智商测试 (IQ Test)</h1>
+            <p class="description">测试共20道题，每道题7.5分，满分150分。请认真作答，测试结果仅供参考。</p>
+        </header>
+        
+        <div id="startScreen">
+            <p>这个测试将评估您的逻辑思维、模式识别和问题解决能力。</p>
+            <p>请在安静的环境中完成测试，避免干扰。</p>
+            <p>测试时间约为15-20分钟。</p>
+            <button id="startBtn" class="restart-btn">开始测试</button>
+        </div>
+        
+        <div id="testScreen" style="display: none;">
+            <div class="timer">剩余时间: <span id="timeLeft">20:00</span></div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div id="questionsContainer"></div>
+            
+            <div class="buttons">
+                <button id="prevBtn" disabled>上一题</button>
+                <button id="nextBtn">下一题</button>
+            </div>
+        </div>
+        
+        <div id="resultScreen">
+            <h2>测试结果</h2>
+            <div class="result-container">
+                <p>您的IQ得分:</p>
+                <div class="iq-score" id="iqScore">--</div>
+                <div class="iq-description" id="iqDescription"></div>
+            </div>
+            <button class="restart-btn" id="restartBtn">重新测试</button>
+        </div>
+    </div>
+    
+    <script>
+        // 测试题目数据
+        const questions = [
+            {
+                type: "text",
+                question: "如果2+3=10, 7+2=63, 6+5=66, 那么8+4=?",
+                options: ["96", "48", "32", "12"],
+                answer: 0 // 正确答案索引
+            },
+            {
+                type: "image",
+                question: "找出下一个图形:",
+                imageUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMTAwIj48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIi8+PGNpcmNsZSBjeD0iMzUiIGN5PSIzNSIgcj0iMTAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSI4MCIgeT0iMTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIi8+PGNpcmNsZSBjeD0iMTA1IiBjeT0iMzUiIHI9IjEwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iMTUwIiB5PSIxMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiLz48Y2lyY2xlIGN4PSIxNzUiIGN5PSIzNSIgcj0iMTAiIGZpbGw9IiMwMDAiLz48dGV4dCB4PSIyNDAiIHk9IjQwIiBmb250LXNpemU9IjI0Ij4/PC90ZXh0Pjwvc3ZnPg==",
+                options: [
+                    "带有一个圆圈在左侧的正方形",
+                    "带有一个圆圈在右侧的正方形",
+                    "带有一个圆圈在中间的正方形",
+                    "带有两个圆圈的正方形"
+                ],
+                answer: 1
+            },
+            {
+                type: "text",
+                question: "如果APPLE是DSSOH，那么ORANGE是什么?",
+                options: ["RUDQJH", "PTCPIG", "QTCPIH", "QTBQHF"],
+                answer: 2
+            },
+            {
+                type: "text",
+                question: "哪个数字最不同于其他数字?",
+                options: ["16", "36", "49", "81"],
+                answer: 0 // 16 = 4², 其他都是奇数的平方
+            },
+            {
+                type: "text",
+                question: "1, 4, 9, 16, 25, ?",
+                options: ["30", "36", "49", "64"],
+                answer: 1 // 平方数列: 1², 2², 3², 4², 5², 6²
+            },
+            {
+                type: "text",
+                question: "如果所有的GLIPS都是PLUMPS，所有的PLUMPS都是GRUMPS，那么:",
+                options: [
+                    "所有的GLIPS都是GRUMPS",
+                    "有些GRUMPS是GLIPS",
+                    "有些PLUMPS不是GRUMPS",
+                    "所有的GRUMPS都是GLIPS"
+                ],
+                answer: 0
+            },
+            {
+                type: "text",
+                question: "找出规律: 3, 6, 18, 72, ?",
+                options: ["144", "288", "360", "432"],
+                answer: 2 // 每次乘以前一个数的一半再乘以4
+            },
+            {
+                type: "text",
+                question: "如果FRIEND的编码是 6 18 9 5 14 4，那么ENEMY的编码是什么?",
+                options: [
+                    "5 14 5 13 25",
+                    "5 13 5 14 25",
+                    "5 14 5 13 24",
+                    "6 13 6 14 25"
+                ],
+                answer: 0 // 字母在字母表中的位置
+            },
+            {
+                type: "text",
+                question: "一个立方体有多少个顶点?",
+                options: ["4", "6", "8", "12"],
+                answer: 2
+            },
+            {
+                type: "text",
+                question: "如果今天是星期三，那么100天后是星期几?",
+                options: ["星期一", "星期二", "星期三", "星期四"],
+                answer: 3 // 100 ÷ 7 = 14 余 2，所以是星期三后推2天，即星期五
+            },
+            {
+                type: "text",
+                question: "找出不属于同一类的词:",
+                options: ["苹果", "香蕉", "胡萝卜", "橙子"],
+                answer: 2 // 胡萝卜不是水果
+            },
+            {
+                type: "text",
+                question: "如果一个人以4公里/小时的速度走了2小时，然后以5公里/小时的速度走了3小时，他总共走了多少公里?",
+                options: ["17", "20", "23", "26"],
+                answer: 2 // 4×2 + 5×3 = 8 + 15 = 23
+            },
+            {
+                type: "text",
+                question: "找出下一个数: 2, 6, 12, 20, 30, ?",
+                options: ["36", "40", "42", "48"],
+                answer: 2 // 差值序列: 4, 6, 8, 10, 12
+            },
+            {
+                type: "text",
+                question: "如果一个钟的时针和分针之间的角度是60度，可能的时间是:",
+                options: ["2:00", "3:00", "4:00", "5:00"],
+                answer: 0 // 2点时，时针在2，分针在12，角度是60度
+            },
+            {
+                type: "text",
+                question: "一个数的一半加上它的三分之一等于35，这个数是多少?",
+                options: ["30", "42", "60", "90"],
+                answer: 2 // x/2 + x/3 = 35, 解得x = 60
+            },
+            {
+                type: "text",
+                question: "如果PQRS是一个正方形，P点的坐标是(0,0)，Q点的坐标是(0,4)，那么S点的坐标是什么?",
+                options: ["(4,0)", "(4,4)", "(0,-4)", "(-4,0)"],
+                answer: 0
+            },
+            {
+                type: "text",
+                question: "找出规律: J, F, M, A, M, ?",
+                options: ["S", "J", "O", "N"],
+                answer: 1 // 月份首字母: 一月、二月、三月、四月、五月、六月
+            },
+            {
+                type: "text",
+                question: "如果3本书的价格是60元，那么7本相同的书价格是多少?",
+                options: ["120元", "140元", "160元", "180元"],
+                answer: 1 // 60÷3×7 = 140
+            },
+            {
+                type: "text",
+                question: "一个袋子里有3个红球和2个蓝球，随机抽取2个球，抽到至少1个红球的概率是多少?",
+                options: ["3/5", "4/5", "9/10", "1"],
+                answer: 2 // 1 - P(全是蓝球) = 1 - (2/5 × 1/4) = 1 - 2/20 = 1 - 1/10 = 9/10
+            },
+            {
+                type: "text",
+                question: "如果所有的A都是B，所有的B都是C，那么:",
+                options: [
+                    "所有的A都是C",
+                    "所有的C都是A",
+                    "有些C不是A",
+                    "有些B不是C"
+                ],
+                answer: 0
+            }
+        ];
+        
+        // 初始化变量
+        let currentQuestion = 0;
+        let answers = Array(questions.length).fill(null);
+        let timer;
+        let timeLeft = 20 * 60; // 20分钟，以秒为单位
+        
+        // 获取DOM元素
+        const startScreen = document.getElementById('startScreen');
+        const testScreen = document.getElementById('testScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const progressBar = document.getElementById('progressBar');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const timeLeftDisplay = document.getElementById('timeLeft');
+        const iqScore = document.getElementById('iqScore');
+        const iqDescription = document.getElementById('iqDescription');
+        
+        // 开始测试
+        startBtn.addEventListener('click', function() {
+            startScreen.style.display = 'none';
+            testScreen.style.display = 'block';
+            loadQuestion(0);
+            startTimer();
+        });
+        
+        // 重新开始测试
+        restartBtn.addEventListener('click', function() {
+            currentQuestion = 0;
+            answers = Array(questions.length).fill(null);
+            resultScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+            updateProgressBar();
+        });
+        
+        // 上一题按钮
+        prevBtn.addEventListener('click', function() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                loadQuestion(currentQuestion);
+                updateButtons();
+            }
+        });
+        
+        // 下一题按钮
+        nextBtn.addEventListener('click', function() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                loadQuestion(currentQuestion);
+                updateButtons();
+            } else {
+                finishTest();
+            }
+        });
+        
+        // 加载问题
+        function loadQuestion(index) {
+            questionsContainer.innerHTML = '';
+            
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-container active';
+            
+            const questionText = document.createElement('div');
+            questionText.className = 'question';
+            questionText.innerHTML = `<span class="question-number">问题 ${index + 1}/${questions.length}:</span> ${questions[index].question}`;
+            questionDiv.appendChild(questionText);
+            
+            if (questions[index].type === 'image') {
+                const img = document.createElement('img');
+                img.src = questions[index].imageUrl;
+                img.alt = "问题图片";
+                const imageDiv = document.createElement('div');
+                imageDiv.className = 'image-question';
+                imageDiv.appendChild(img);
+                questionDiv.appendChild(imageDiv);
+            }
+            
+            const optionsList = document.createElement('ul');
+            optionsList.className = 'options';
+            
+            questions[index].options.forEach((option, optionIndex) => {
+                const optionItem = document.createElement('li');
+                optionItem.className = 'option';
+                if (answers[index] === optionIndex) {
+                    optionItem.classList.add('selected');
+                }
+                optionItem.textContent = option;
+                optionItem.addEventListener('click', function() {
+                    selectOption(optionIndex);
+                });
+                optionsList.appendChild(optionItem);
+            });
+            
+            questionDiv.appendChild(optionsList);
+            questionsContainer.appendChild(questionDiv);
+            
+            updateProgressBar();
+        }
+        
+        // 选择选项
+        function selectOption(optionIndex) {
+            answers[currentQuestion] = optionIndex;
+            
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, index) => {
+                if (index === optionIndex) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+            
+            updateButtons();
+        }
+        
+        // 更新按钮状态
+        function updateButtons() {
+            prevBtn.disabled = currentQuestion === 0;
+            
+            if (currentQuestion === questions.length - 1) {
+                nextBtn.textContent = '完成测试';
+            } else {
+                nextBtn.textContent = '下一题';
+            }
+        }
+        
+        // 更新进度条
+        function updateProgressBar() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+        
+        // 开始计时器
+        function startTimer() {
+            updateTimerDisplay();
+            timer = setInterval(function() {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    finishTest();
+                }
+            }, 1000);
+        }
+        
+        // 更新计时器显示
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timeLeftDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 完成测试
+        function finishTest() {
+            clearInterval(timer);
+            testScreen.style.display = 'none';
+            resultScreen.style.display = 'block';
+            
+            // 计算得分
+            let correctAnswers = 0;
+            answers.forEach((answer, index) => {
+                if (answer === questions[index].answer) {
+                    correctAnswers++;
+                }
+            });
+            
+            // 计算IQ分数 (基于正确答案数量)
+            const score = Math.round(70 + (correctAnswers / questions.length) * 80);
+            iqScore.textContent = score;
+            
+            // 设置IQ描述
+            if (score < 90) {
+                iqDescription.textContent = "低于平均水平。建议多进行逻辑思维训练。";
+            } else if (score < 100) {
+                iqDescription.textContent = "接近平均水平。有一定的逻辑思维能力。";
+            } else if (score < 120) {
+                iqDescription.textContent = "平均水平。具备正常的逻辑思维和问题解决能力。";
+            } else if (score < 130) {
+                iqDescription.textContent = "高于平均水平。具有良好的逻辑思维和分析能力。";
+            } else if (score < 140) {
+                iqDescription.textContent = "优秀水平。具备出色的逻辑推理和问题解决能力。";
+            } else {
+                iqDescription.textContent = "杰出水平。具有极强的逻辑思维、模式识别和分析能力。";
+            }
+        }
+        
+        // 初始化
+        updateButtons();
+    </script>
+</body>
+</html>
